@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rifa Online</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; }
+  body { margin:0; }
+  :root {
+    --bg: #0F2A22; --surface: #163A2F; --surface-2: #1E4A3C;
+    --gold: #E7B33E; --cream: #F3ECDC; --muted: #93AC9F;
+    --green: #3FA65C; --amber: #E0A030; --red: #C7473A;
+  }
+  .rf-root {
+    background: var(--bg); color: var(--cream);
+    font-family: 'Work Sans', sans-serif;
+    min-height: 100vh; padding: 20px 16px 60px;
+    max-width: 720px; margin: 0 auto;
+  }
+  .rf-eyebrow { text-transform: uppercase; letter-spacing: 0.14em; font-size: 12px; color: var(--gold); font-weight: 600; }
+  .rf-title { font-family: 'Bebas Neue', sans-serif; font-size: 40px; letter-spacing: 0.02em; margin: 4px 0 0; line-height: 1; }
+  .rf-header { display:flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+  .rf-muted { color: var(--muted); font-size: 14px; }
+  .rf-error { color: #FF9C8C; font-size: 14px; }
+  .rf-hint { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+
+  .rf-prize-card { display:flex; gap: 14px; background: var(--surface); border-radius: 14px; padding: 14px; align-items: center; }
+  .rf-prize-img { width: 92px; height: 92px; object-fit: cover; border-radius: 10px; flex-shrink: 0; border: 2px solid var(--gold); }
+  .rf-prize-img-empty { display:flex; align-items:center; justify-content:center; font-size: 28px; background: var(--bg); }
+  .rf-price { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: var(--gold); margin: 6px 0 0; letter-spacing: 0.03em; }
+
+  .rf-ticket-divider { position: relative; height: 1px; background: repeating-linear-gradient(90deg, var(--muted) 0 6px, transparent 6px 12px); margin: 18px 0; opacity: 0.5; }
+
+  .rf-progress-section { margin-bottom: 14px; }
+  .rf-progress-row { display:flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--muted); }
+  .rf-progress-bar { height: 8px; background: var(--surface); border-radius: 999px; overflow: hidden; }
+  .rf-progress-fill { height: 100%; background: linear-gradient(90deg, var(--amber), var(--gold)); border-radius: 999px; transition: width 0.4s ease; }
+  .rf-actions-row { display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+
+  .rf-legend { display:flex; gap: 14px; flex-wrap: wrap; margin: 14px 0 10px; font-size: 12.5px; color: var(--muted); }
+  .rf-legend-item { display:flex; align-items:center; gap: 6px; }
+  .rf-dot { width: 10px; height: 10px; border-radius: 3px; display:inline-block; }
+  .rf-dot-green { background: var(--green); }
+  .rf-dot-amber { background: var(--amber); }
+  .rf-dot-red { background: var(--red); }
+
+  .rf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 8px; margin-top: 8px; }
+  .rf-cell { position: relative; aspect-ratio: 1; border-radius: 8px; border: none; font-weight: 700; font-size: 13px; cursor: pointer; color: #0F2A22; overflow: hidden; padding: 2px; }
+  .rf-cell-available { background: var(--green); }
+  .rf-cell-pending { background: var(--amber); color: #3A2A05; cursor: not-allowed; }
+  .rf-cell-paid { background: var(--red); color: #3A0F0A; cursor: not-allowed; }
+  .rf-stamp { position: absolute; top: 2px; left: -8px; right: -8px; background: rgba(15,42,34,0.75); color: var(--gold); font-family: 'Bebas Neue', sans-serif; font-size: 9px; letter-spacing: 0.08em; transform: rotate(-14deg); text-align:center; padding: 1px 0; }
+
+  .rf-btn { border: none; border-radius: 10px; padding: 11px 16px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  .rf-btn-primary { background: var(--green); color: #0F2A22; }
+  .rf-btn-gold { background: var(--gold); color: #3A2A05; }
+  .rf-btn-whats { background: #25D366; color: #06381D; }
+  .rf-btn-danger { background: var(--red); color: #fff; }
+  .rf-btn-ghost { background: transparent; color: var(--cream); border: 1px solid var(--surface-2); }
+  .rf-small { padding: 8px 12px; font-size: 12.5px; }
+  .rf-w-full { width: 100%; margin-top: 10px; }
+
+  .rf-overlay { position: fixed; inset: 0; background: rgba(6,16,13,0.72); display:flex; align-items:center; justify-content:center; padding: 16px; z-index: 50; color: var(--cream); font-family: 'Work Sans', sans-serif; }
+  .rf-modal { background: var(--surface) !important; color: var(--cream); }
+  .rf-modal { background: var(--surface); border-radius: 16px; padding: 22px; width: 100%; max-width: 380px; max-height: 88vh; overflow-y: auto; }
+  .rf-modal-sm { max-width: 320px; }
+  .rf-modal-title { margin: 4px 0 10px; }
+  .rf-modal-title-big { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 0.03em; margin: 2px 0 10px; }
+  .rf-modal-actions { display:flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+  .rf-modal-actions-col { flex-direction: column; }
+
+  .rf-label { display:block; font-size: 12.5px; color: var(--muted); margin: 12px 0 5px; }
+  .rf-input { width: 100%; background: var(--bg); border: 1px solid var(--surface-2); color: var(--cream); border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: inherit; }
+  .rf-photo-drop { display: flex; align-items:center; justify-content:center; background: var(--bg); border: 2px dashed var(--surface-2); border-radius: 12px; min-height: 140px; margin-top: 8px; cursor: pointer; overflow: hidden; }
+  .rf-photo-drop:hover { border-color: var(--gold); }
+  .rf-photo-drop-empty { color: var(--muted); font-size: 13px; text-align: center; line-height: 1.7; }
+  .rf-preview-img { width: 100%; max-height: 220px; object-fit: cover; display:block; }
+  .rf-file-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  .rf-photo-drop { position: relative; }
+  .rf-radio-row { display:flex; gap: 16px; flex-wrap: wrap; font-size: 14px; margin-top: 4px; }
+  .rf-radio-row label { display:flex; align-items:center; gap: 6px; }
+
+  .rf-pixbox { background: var(--bg); border: 1px dashed var(--gold); border-radius: 10px; padding: 12px; margin: 10px 0; word-break: break-all; }
+  .rf-pixkey { font-size: 14px; color: var(--gold); font-weight: 600; }
+
+  .rf-cell-selected { outline: 3px solid var(--gold); outline-offset: -3px; }
+  .rf-selection-bar {
+    display:flex; align-items:center; justify-content: space-between; gap: 10px;
+    background: var(--surface); border: 1px solid var(--gold); border-radius: 12px;
+    padding: 10px 12px; margin-bottom: 10px; font-size: 13.5px; flex-wrap: wrap;
+    position: sticky; top: 8px; z-index: 10;
+  }
+
+  .rf-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--gold); color: #3A2A05; padding: 10px 18px; border-radius: 999px; font-size: 13.5px; font-weight: 600; z-index: 100; box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+  .rf-storage-warning { background: rgba(224,160,48,0.15); border: 1px solid var(--amber); color: var(--amber); font-size: 12.5px; padding: 8px 12px; border-radius: 10px; margin-bottom: 14px; }
+
+  .rf-admin-header { display:flex; justify-content: space-between; align-items:center; margin-bottom: 12px; }
+  .rf-admin-stats { display:flex; gap: 10px; margin-bottom: 16px; }
+  .rf-stat { flex:1; background: var(--surface); border-radius: 10px; padding: 10px; text-align:center; }
+  .rf-stat b { font-family: 'Bebas Neue', sans-serif; font-size: 22px; display:block; color: var(--gold); }
+  .rf-stat span { font-size: 11px; color: var(--muted); }
+
+  .rf-tabs { display:flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 4px; }
+  .rf-tab { flex-shrink:0; background: var(--surface); color: var(--muted); border: none; border-radius: 999px; padding: 8px 14px; font-size: 12.5px; cursor: pointer; font-family: inherit; }
+  .rf-tab-active { background: var(--gold); color: #3A2A05; font-weight: 700; }
+
+  .rf-card { background: var(--surface); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .rf-admin-auth { max-width: 360px; margin: 40px auto; }
+  .rf-winner-card { margin-top: 14px; background: var(--bg); border: 1px solid var(--gold); border-radius: 12px; padding: 14px; text-align:center; }
+
+  .rf-pie-wrap { display:flex; justify-content: center; margin: 14px 0; }
+  .rf-pie { width: 160px; height: 160px; border-radius: 50%; position: relative; display:flex; align-items:center; justify-content:center; }
+  .rf-pie-center { width: 100px; height: 100px; border-radius: 50%; background: var(--surface); display:flex; align-items:center; justify-content:center; font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: var(--gold); }
+  .rf-pie-legend { display:flex; flex-direction: column; gap: 8px; font-size: 13.5px; margin-bottom: 6px; }
+  .rf-pie-legend span { display:flex; align-items:center; gap: 8px; }
+
+  @media (max-width: 420px) {
+    .rf-title { font-size: 32px; }
+    .rf-grid { grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+<div id="app" class="rf-root"><p class="rf-muted">Carregando rifa...</p></div>
+
+<script type="module">
+/* =====================================================================
+   RIFA ONLINE — versão standalone (sem Claude), usando Firebase Firestore.
+   Hospede este arquivo em qualquer lugar (Firebase Hosting, seu próprio
+   servidor, etc). Funciona em qualquer navegador de celular, sem app.
+   ===================================================================== */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, setDoc, onSnapshot, runTransaction
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* -------- 1) COLE AQUI AS CHAVES DO SEU PROJETO FIREBASE -------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyApQdWVeL-3_NoTEQ4rMGBUk4s1mmfbHkA",
+  authDomain: "rifa-f4a45.firebaseapp.com",
+  projectId: "rifa-f4a45",
+  storageBucket: "rifa-f4a45.firebasestorage.app",
+  messagingSenderId: "744002578953",
+  appId: "1:744002578953:web:96e9d42192bbab4b4c66d8"
+};
+/* ------------------------------------------------------------------ */
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const configRef = doc(db, "raffle", "config");
+const entriesRef = doc(db, "raffle", "entries");
+
+const DEFAULT_CONFIG = {
+  prizeName: "Prêmio da Rifa",
+  prizeDescription: "Concorra e boa sorte!",
+  prizeImage: "",
+  pricePerNumber: 10,
+  pixKey: "",
+  pixOwnerName: "",
+  whatsappNumber: "",
+  totalCount: 100,
+  mode: "numbers",
+  entryLabels: [],
+  adminPasswordHash: "",
+  drawWinner: null,
+};
+
+function generateEntries(count) {
+  const obj = {};
+  for (let i = 1; i <= count; i++) {
+    obj[String(i)] = { status: "available", buyerName: "", buyerPhone: "", updatedAt: null };
+  }
+  return obj;
+}
+
+async function sha256Hex(text) {
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function formatBRL(n) {
+  const v = Number(n);
+  if (Number.isNaN(v)) return "R$ 0,00";
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function digitsOnly(s) { return (s || "").replace(/\D/g, ""); }
+
+function buildWhatsAppLink(phone, text) {
+  return `https://wa.me/${digitsOnly(phone)}?text=${encodeURIComponent(text)}`;
+}
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch (e) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); document.body.removeChild(ta);
+      return true;
+    } catch (e2) { return false; }
+  }
+}
+
+function labelFor(cfg, id) {
+  if (cfg.mode === "names") {
+    const idx = Number(id) - 1;
+    return (cfg.entryLabels && cfg.entryLabels[idx]) || `Item ${id}`;
+  }
+  return `Nº ${id}`;
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* -------------------- estado -------------------- */
+let state = {
+  config: null,
+  entries: null,
+  view: "participant",     // participant | admin
+  adminAuthed: false,
+  modal: null,             // { type: 'reserve'|'pix'|'pie'|'confirmRegen'|'entryDetail', ...}
+  adminTab: "premio",
+  toast: "",
+  storageOk: true,
+  selected: [],            // ids escolhidos pelo participante antes de reservar
+};
+
+function setState(patch) { state = { ...state, ...patch }; render(); }
+function showToast(msg) {
+  setState({ toast: msg });
+  setTimeout(() => { if (state.toast === msg) setState({ toast: "" }); }, 2600);
+}
+
+/* -------------------- Firestore: carregar / ouvir -------------------- */
+async function bootstrap() {
+  try {
+    const cfgSnap = await getDoc(configRef);
+    if (!cfgSnap.exists()) await setDoc(configRef, DEFAULT_CONFIG);
+    const entSnap = await getDoc(entriesRef);
+    if (!entSnap.exists()) await setDoc(entriesRef, { items: generateEntries(DEFAULT_CONFIG.totalCount) });
+  } catch (e) {
+    console.error(e);
+    setState({ storageOk: false });
+  }
+
+  onSnapshot(configRef, (snap) => {
+    if (snap.exists()) setState({ config: snap.data(), storageOk: true });
+  }, () => setState({ storageOk: false }));
+
+  onSnapshot(entriesRef, (snap) => {
+    if (snap.exists()) setState({ entries: snap.data().items, storageOk: true });
+  }, () => setState({ storageOk: false }));
+}
+
+async function saveConfig(updated) {
+  try { await setDoc(configRef, updated); }
+  catch (e) { setState({ storageOk: false }); showToast("Não foi possível salvar agora."); }
+}
+async function saveEntries(updated) {
+  try { await setDoc(entriesRef, { items: updated }); }
+  catch (e) { setState({ storageOk: false }); showToast("Não foi possível salvar agora."); }
+}
+
+async function reserveEntries(ids, name, phone) {
+  try {
+    let result = { ok: true };
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(entriesRef);
+      const items = snap.exists() ? snap.data().items : generateEntries(state.config.totalCount);
+      const taken = ids.filter((id) => !items[id] || items[id].status !== "available");
+      if (taken.length > 0) {
+        result = { ok: false, message: `Estes já foram escolhidos por outra pessoa: ${taken.join(", ")}. Ajuste sua seleção.`, taken };
+        return;
+      }
+      ids.forEach((id) => {
+        items[id] = { status: "pending", buyerName: name, buyerPhone: phone, updatedAt: Date.now() };
+      });
+      tx.set(entriesRef, { items });
+    });
+    return result;
+  } catch (e) {
+    return { ok: false, message: "Erro ao salvar sua reserva. Tente novamente." };
+  }
+}
+
+async function setEntryStatus(id, status) {
+  const items = { ...state.entries };
+  items[id] = status === "available"
+    ? { status: "available", buyerName: "", buyerPhone: "", updatedAt: null }
+    : { ...items[id], status };
+  await saveEntries(items);
+}
+
+async function drawWinner() {
+  const paidIds = Object.keys(state.entries).filter((id) => state.entries[id].status === "paid");
+  if (paidIds.length === 0) { showToast("Ainda não há números pagos para sortear."); return; }
+  const winnerId = paidIds[Math.floor(Math.random() * paidIds.length)];
+  const label = labelFor(state.config, winnerId);
+  const updated = { ...state.config, drawWinner: { id: winnerId, label, buyerName: state.entries[winnerId].buyerName, drawnAt: Date.now() } };
+  await saveConfig(updated);
+  showToast("Sorteio realizado!");
+}
+
+function handleImageFile(file, onDone) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxW = 700;
+      const scale = Math.min(1, maxW / img.width);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      onDone(canvas.toDataURL("image/jpeg", 0.7));
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* -------------------- render -------------------- */
+const appEl = document.getElementById("app");
+
+function render() {
+  const { config, entries } = state;
+  if (!config || !entries) { appEl.innerHTML = `<p class="rf-muted">Carregando rifa...</p>`; return; }
+
+  const total = Object.keys(entries).length;
+  const paidCount = Object.values(entries).filter((e) => e.status === "paid").length;
+  const pct = total ? Math.round((paidCount / total) * 100) : 0;
+
+  let html = "";
+  if (state.toast) html += `<div class="rf-toast">${esc(state.toast)}</div>`;
+  if (!state.storageOk) html += `<div class="rf-storage-warning">⚠️ Não foi possível salvar agora. Verifique sua internet.</div>`;
+
+  html += `<header class="rf-header">
+    <div>
+      <span class="rf-eyebrow">Rifa online</span>
+      <h1 class="rf-title">${esc(config.prizeName)}</h1>
+    </div>
+    <button class="rf-btn rf-btn-ghost rf-small" data-action="toggle-view">${state.view === "admin" ? "← Ver como participante" : "Sou organizador"}</button>
+  </header>`;
+
+  if (state.view === "participant") {
+    html += renderParticipant(config, entries, total, paidCount, pct);
+  } else if (!state.adminAuthed) {
+    html += renderAdminLogin(config);
+  } else {
+    html += renderAdminPanel(config, entries);
+  }
+
+  appEl.innerHTML = html;
+  attachHandlers();
+  if (state.modal) renderModal();
+}
+
+function renderParticipant(config, entries, total, paidCount, pct) {
+  let out = `<section class="rf-prize-card">`;
+  out += config.prizeImage
+    ? `<img src="${config.prizeImage}" class="rf-prize-img" alt="Prêmio" />`
+    : `<div class="rf-prize-img rf-prize-img-empty">📷</div>`;
+  out += `<div><p>${esc(config.prizeDescription)}</p>
+    <p class="rf-price">${formatBRL(config.pricePerNumber)} <span class="rf-muted">por número</span></p></div></section>`;
+
+  out += `<div class="rf-ticket-divider"></div>`;
+
+  out += `<section class="rf-progress-section">
+    <div class="rf-progress-row"><span>${paidCount} de ${total} vendidos</span><span>${pct}%</span></div>
+    <div class="rf-progress-bar"><div class="rf-progress-fill" style="width:${pct}%"></div></div>
+    <div class="rf-actions-row">
+      ${config.pixKey ? `<button class="rf-btn rf-btn-gold" data-action="open-pix">💳 Forma de pagamento (Pix)</button>` : ""}
+      <button class="rf-btn rf-btn-gold" data-action="open-pie">🥧 Progresso (${pct}% vendido)</button>
+      ${config.whatsappNumber ? `<a class="rf-btn rf-btn-whats" target="_blank" href="${buildWhatsAppLink(config.whatsappNumber, `Olá! Já paguei a rifa "${config.prizeName}" e vou enviar meu comprovante.`)}">📲 Enviar comprovante</a>` : ""}
+    </div>
+  </section>`;
+
+  out += `<div class="rf-legend">
+    <span class="rf-legend-item"><i class="rf-dot rf-dot-green"></i>Disponível</span>
+    <span class="rf-legend-item"><i class="rf-dot rf-dot-amber"></i>Aguardando confirmação</span>
+    <span class="rf-legend-item"><i class="rf-dot rf-dot-red"></i>Vendido (pago)</span>
+  </div>`;
+
+  if (state.selected.length > 0) {
+    const count = state.selected.length;
+    const totalVal = formatBRL(config.pricePerNumber * count);
+    out += `<div class="rf-selection-bar">
+      <span>${count} número${count > 1 ? "s" : ""} selecionado${count > 1 ? "s" : ""} · <b>${totalVal}</b></span>
+      <div style="display:flex; gap:8px;">
+        <button class="rf-btn rf-btn-ghost rf-small" data-action="clear-selection">Limpar</button>
+        <button class="rf-btn rf-btn-primary rf-small" data-action="open-reserve-multi">Continuar</button>
+      </div>
+    </div>`;
+  }
+
+  out += `<div class="rf-grid">`;
+  Object.keys(entries).sort((a, b) => Number(a) - Number(b)).forEach((id) => {
+    const e = entries[id];
+    const isSelected = state.selected.includes(id);
+    let cls = e.status === "available" ? "rf-cell-available" : e.status === "pending" ? "rf-cell-pending" : "rf-cell-paid";
+    if (isSelected) cls += " rf-cell-selected";
+    const short = config.mode === "names" ? esc(labelFor(config, id).slice(0, 10)) : id;
+    out += `<button class="rf-cell ${cls}" data-action="pick" data-id="${id}" ${e.status !== "available" ? "disabled" : ""}>
+      ${e.status === "paid" ? `<span class="rf-stamp">PAGO</span>` : ""}${isSelected ? "✓" : short}
+    </button>`;
+  });
+  out += `</div>`;
+  return out;
+}
+
+function renderAdminLogin(config) {
+  if (!config.adminPasswordHash) {
+    return `<div class="rf-card rf-admin-auth">
+      <h3>Defina a senha do administrador</h3>
+      <p class="rf-muted">Você vai usar essa senha para entrar nesta área e editar a rifa.</p>
+      <label class="rf-label">Senha</label>
+      <input class="rf-input" id="pw-new1" type="password" />
+      <label class="rf-label">Confirmar senha</label>
+      <input class="rf-input" id="pw-new2" type="password" />
+      <p class="rf-error" id="pw-err"></p>
+      <button class="rf-btn rf-btn-primary rf-w-full" data-action="set-password">Salvar senha e entrar</button>
+    </div>`;
+  }
+  return `<div class="rf-card rf-admin-auth">
+    <h3>Área do administrador</h3>
+    <label class="rf-label">Senha</label>
+    <input class="rf-input" id="pw-login" type="password" />
+    <p class="rf-error" id="pw-err"></p>
+    <button class="rf-btn rf-btn-primary rf-w-full" data-action="login">Entrar</button>
+  </div>`;
+}
+
+function renderAdminPanel(config, entries) {
+  const paid = Object.values(entries).filter((e) => e.status === "paid").length;
+  const pending = Object.values(entries).filter((e) => e.status === "pending").length;
+  const available = Object.values(entries).length - paid - pending;
+  const tab = state.adminTab;
+
+  let out = `<div class="rf-admin-header"><h2>Painel do administrador</h2><button class="rf-btn rf-btn-ghost" data-action="logout">Sair</button></div>`;
+  out += `<div class="rf-admin-stats">
+    <div class="rf-stat"><b>${paid}</b><span>pagos</span></div>
+    <div class="rf-stat"><b>${pending}</b><span>aguardando</span></div>
+    <div class="rf-stat"><b>${available}</b><span>disponíveis</span></div>
+  </div>`;
+
+  const tabs = [["premio","Prêmio"],["pagamento","Pagamento"],["config","Configurar rifa"],["gerenciar","Gerenciar números"],["sorteio","Sorteio"]];
+  out += `<div class="rf-tabs">` + tabs.map(([k,l]) => `<button class="rf-tab ${tab===k?"rf-tab-active":""}" data-action="admin-tab" data-tab="${k}">${l}</button>`).join("") + `</div>`;
+
+  if (tab === "premio") {
+    out += `<div class="rf-card">
+      <label class="rf-label">Nome do prêmio</label>
+      <input class="rf-input" id="f-prizeName" value="${esc(config.prizeName)}" />
+      <label class="rf-label">Descrição</label>
+      <textarea class="rf-input" id="f-prizeDescription" rows="3">${esc(config.prizeDescription)}</textarea>
+      <label class="rf-label">Valor por número</label>
+      <input class="rf-input" id="f-pricePerNumber" type="number" min="0" step="0.01" value="${config.pricePerNumber}" />
+      <label class="rf-label">Foto do prêmio</label>
+      <label class="rf-photo-drop" for="f-prizeImage">
+        ${config.prizeImage ? `<img src="${config.prizeImage}" class="rf-preview-img" />` : `<span class="rf-photo-drop-empty">📷<br />Toque para adicionar uma foto</span>`}
+        <input type="file" accept="image/*" class="rf-file-hidden" id="f-prizeImage" />
+      </label>
+      ${config.prizeImage ? `<button class="rf-btn rf-btn-ghost rf-small" data-action="remove-photo">Remover foto</button>` : ""}
+      <button class="rf-btn rf-btn-primary rf-w-full" data-action="save-premio">Salvar prêmio</button>
+    </div>`;
+  } else if (tab === "pagamento") {
+    out += `<div class="rf-card">
+      <label class="rf-label">Chave Pix</label>
+      <input class="rf-input" id="f-pixKey" value="${esc(config.pixKey)}" placeholder="CPF, e-mail, telefone ou chave aleatória" />
+      <label class="rf-label">Nome do titular (opcional)</label>
+      <input class="rf-input" id="f-pixOwnerName" value="${esc(config.pixOwnerName)}" />
+      <label class="rf-label">WhatsApp para receber comprovantes</label>
+      <input class="rf-input" id="f-whatsappNumber" value="${esc(config.whatsappNumber)}" placeholder="Ex: 5511999999999" />
+      <p class="rf-hint">Use o número com DDI + DDD, só números (ex: 55 11 99999-9999 → 5511999999999).</p>
+      <button class="rf-btn rf-btn-primary rf-w-full" data-action="save-pagamento">Salvar dados de pagamento</button>
+    </div>`;
+  } else if (tab === "config") {
+    out += `<div class="rf-card">
+      <label class="rf-label">Participantes escolhem por</label>
+      <div class="rf-radio-row">
+        <label><input type="radio" name="mode" id="f-mode-numbers" ${config.mode==="numbers"?"checked":""}/> Números</label>
+        <label><input type="radio" name="mode" id="f-mode-names" ${config.mode==="names"?"checked":""}/> Nomes/itens personalizados</label>
+      </div>
+      <label class="rf-label">Quantidade</label>
+      <div class="rf-radio-row">
+        ${[50,100,200].map(n=>`<label><input type="radio" name="qty" value="${n}" ${Number(config.totalCount)===n?"checked":""}/> ${n}</label>`).join("")}
+      </div>
+      <label class="rf-label">Lista de nomes (um por linha) — usada só no modo "Nomes"</label>
+      <textarea class="rf-input" id="f-entryLabels" rows="6" placeholder="Ex:\nBoneca Azul\nCarrinho Vermelho">${(config.entryLabels||[]).join("\n")}</textarea>
+      <p class="rf-hint">Se faltar nome para completar a quantidade, os restantes viram "Item N".</p>
+      <p class="rf-error">Atenção: aplicar essa configuração reinicia todos os números/nomes e apaga reservas e pagamentos atuais.</p>
+      <button class="rf-btn rf-btn-danger rf-w-full" data-action="ask-regen">Aplicar e reiniciar rifa</button>
+    </div>`;
+  } else if (tab === "gerenciar") {
+    out += `<div class="rf-card"><p class="rf-hint">Toque em um número para marcar como pago, pendente ou liberar.</p><div class="rf-grid">`;
+    Object.keys(entries).sort((a,b)=>Number(a)-Number(b)).forEach((id) => {
+      const e = entries[id];
+      const cls = e.status === "available" ? "rf-cell-available" : e.status === "pending" ? "rf-cell-pending" : "rf-cell-paid";
+      const short = config.mode === "names" ? esc(labelFor(config, id).slice(0, 10)) : id;
+      out += `<button class="rf-cell ${cls}" data-action="admin-pick" data-id="${id}">${e.status==="paid"?`<span class="rf-stamp">PAGO</span>`:""}${short}</button>`;
+    });
+    out += `</div></div>`;
+  } else if (tab === "sorteio") {
+    out += `<div class="rf-card">
+      <button class="rf-btn rf-btn-gold rf-w-full" data-action="draw">🎉 Sortear ganhador entre os pagos</button>
+      ${config.drawWinner ? `<div class="rf-winner-card">
+        <span class="rf-eyebrow">Ganhador</span>
+        <h3 class="rf-modal-title-big">${esc(config.drawWinner.label)}</h3>
+        ${config.drawWinner.buyerName ? `<p>${esc(config.drawWinner.buyerName)}</p>` : ""}
+        <p class="rf-muted">Sorteado em ${new Date(config.drawWinner.drawnAt).toLocaleString("pt-BR")}</p>
+      </div>` : ""}
+    </div>`;
+  }
+
+  out += `<div class="rf-card">
+    <h3>Alterar senha</h3>
+    <label class="rf-label">Nova senha</label>
+    <input class="rf-input" id="f-pw1" type="password" />
+    <label class="rf-label">Confirmar</label>
+    <input class="rf-input" id="f-pw2" type="password" />
+    <button class="rf-btn rf-btn-ghost rf-w-full" data-action="change-password">Salvar nova senha</button>
+  </div>`;
+
+  return out;
+}
+
+function renderModal() {
+  const m = state.modal;
+  if (!m) return;
+  const config = state.config, entries = state.entries;
+  let inner = "";
+
+  if (m.type === "pix") {
+    inner = `<h3 class="rf-modal-title">Pagamento via Pix</h3>
+      ${config.pixOwnerName ? `<p class="rf-muted">Titular: ${esc(config.pixOwnerName)}</p>` : ""}
+      <div class="rf-pixbox"><span class="rf-pixkey">${esc(config.pixKey)}</span></div>
+      <button class="rf-btn rf-btn-primary rf-w-full" data-action="copy-pix">Copiar chave Pix</button>
+      <p class="rf-hint">Cole essa chave no app do seu banco para pagar. Depois, envie o comprovante pelo WhatsApp.</p>
+      <button class="rf-btn rf-btn-ghost rf-w-full" data-action="close-modal">Fechar</button>`;
+  } else if (m.type === "pie") {
+    const total = Object.values(entries).length || 1;
+    const paid = Object.values(entries).filter(e=>e.status==="paid").length;
+    const pending = Object.values(entries).filter(e=>e.status==="pending").length;
+    const available = total - paid - pending;
+    const paidPct = Math.round((paid/total)*100), pendingPct = Math.round((pending/total)*100), availPct = 100 - paidPct - pendingPct;
+    const paidDeg = (paid/total)*100, pendingDeg = paidDeg + (pending/total)*100;
+    inner = `<span class="rf-eyebrow">Progresso da rifa</span>
+      <h3 class="rf-modal-title-big">${paidPct}% vendido</h3>
+      <div class="rf-pie-wrap"><div class="rf-pie" style="background:conic-gradient(var(--red) 0% ${paidDeg}%, var(--amber) ${paidDeg}% ${pendingDeg}%, var(--green) ${pendingDeg}% 100%)">
+        <div class="rf-pie-center">${paidPct}%</div></div></div>
+      <div class="rf-pie-legend">
+        <span><i class="rf-dot rf-dot-red"></i> Vendidos: ${paid} (${paidPct}%)</span>
+        <span><i class="rf-dot rf-dot-amber"></i> Aguardando: ${pending} (${pendingPct}%)</span>
+        <span><i class="rf-dot rf-dot-green"></i> Disponíveis: ${available} (${availPct}%)</span>
+      </div>
+      <button class="rf-btn rf-btn-ghost rf-w-full" data-action="close-modal">Fechar</button>`;
+  } else if (m.type === "reserve") {
+    const ids = m.ids;
+    const labels = ids.map((id) => labelFor(config, id));
+    const labelsText = labels.join(", ");
+    const totalVal = formatBRL(config.pricePerNumber * ids.length);
+    if (m.step === 2) {
+      const waText = `Olá! Fiz o pagamento da rifa "${config.prizeName}" — ${labelsText}. Nome: ${m.name}. Segue o comprovante:`;
+      inner = `<span class="rf-eyebrow">Reservado! Falta pagar</span>
+        <h3 class="rf-modal-title-big">${ids.length > 1 ? ids.length + " números" : esc(labels[0])}</h3>
+        <p class="rf-muted">${esc(labelsText)}</p>
+        <p class="rf-muted">Total: <b>${totalVal}</b></p>
+        ${config.pixKey ? `<div class="rf-pixbox"><span class="rf-pixkey">${esc(config.pixKey)}</span></div>
+        <button class="rf-btn rf-btn-primary rf-w-full" data-action="copy-pix">Copiar chave Pix</button>` : `<p class="rf-error">O organizador ainda não cadastrou a chave Pix.</p>`}
+        ${config.whatsappNumber ? `<a class="rf-btn rf-btn-whats rf-w-full" target="_blank" href="${buildWhatsAppLink(config.whatsappNumber, waText)}">📲 Enviar comprovante no WhatsApp</a>` : `<p class="rf-error">O organizador ainda não cadastrou um WhatsApp.</p>`}
+        <p class="rf-hint">Seus números ficam reservados até o organizador confirmar o pagamento.</p>
+        <button class="rf-btn rf-btn-ghost rf-w-full" data-action="close-modal">Concluir</button>`;
+    } else {
+      inner = `<span class="rf-eyebrow">Você escolheu</span>
+        <h3 class="rf-modal-title-big">${ids.length > 1 ? ids.length + " números" : esc(labels[0])}</h3>
+        <p class="rf-muted">${esc(labelsText)}</p>
+        <p class="rf-muted">Total: <b>${totalVal}</b></p>
+        <label class="rf-label">Seu nome</label>
+        <input class="rf-input" id="rv-name" placeholder="Nome completo" />
+        <label class="rf-label">WhatsApp (opcional)</label>
+        <input class="rf-input" id="rv-phone" placeholder="(00) 00000-0000" />
+        <p class="rf-error" id="rv-err"></p>
+        <div class="rf-modal-actions">
+          <button class="rf-btn rf-btn-ghost" data-action="close-modal">Cancelar</button>
+          <button class="rf-btn rf-btn-primary" data-action="confirm-reserve">Reservar e ir para pagamento</button>
+        </div>`;
+    }
+  } else if (m.type === "confirmRegen") {
+    inner = `<h3 class="rf-modal-title">Reiniciar a rifa?</h3>
+      <p class="rf-muted">Isso vai apagar todas as reservas e pagamentos atuais e recriar os números/nomes do zero.</p>
+      <div class="rf-modal-actions">
+        <button class="rf-btn rf-btn-ghost" data-action="close-modal">Cancelar</button>
+        <button class="rf-btn rf-btn-danger" data-action="confirm-regen">Sim, reiniciar</button>
+      </div>`;
+  } else if (m.type === "entryDetail") {
+    const e = entries[m.id];
+    inner = `<span class="rf-eyebrow">${esc(labelFor(config, m.id))}</span>
+      <p class="rf-muted">Status atual: <b>${e.status === "available" ? "Disponível" : e.status === "pending" ? "Aguardando confirmação" : "Pago"}</b></p>
+      ${e.buyerName ? `<p>Comprador: ${esc(e.buyerName)}</p>` : ""}
+      ${e.buyerPhone ? `<p>WhatsApp: ${esc(e.buyerPhone)}</p>` : ""}
+      <div class="rf-modal-actions rf-modal-actions-col">
+        <button class="rf-btn rf-btn-primary" data-action="mark-paid" data-id="${m.id}">Marcar como pago</button>
+        <button class="rf-btn rf-btn-gold" data-action="mark-pending" data-id="${m.id}">Marcar como aguardando</button>
+        <button class="rf-btn rf-btn-ghost" data-action="mark-available" data-id="${m.id}">Liberar número</button>
+        <button class="rf-btn rf-btn-ghost" data-action="close-modal">Fechar</button>
+      </div>`;
+  }
+
+  const wrap = document.createElement("div");
+  wrap.className = "rf-overlay";
+  wrap.innerHTML = `<div class="rf-modal ${m.type === "confirmRegen" ? "rf-modal-sm" : ""}">${inner}</div>`;
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) setState({ modal: null }); });
+  document.body.appendChild(wrap);
+  wrap.querySelector(".rf-modal").addEventListener("click", (e) => e.stopPropagation());
+  bindActions(wrap);
+}
+
+/* -------------------- eventos -------------------- */
+function attachHandlers() { bindActions(appEl); }
+
+function bindActions(root) {
+  root.querySelectorAll("[data-action]").forEach((el) => {
+    el.addEventListener("click", onAction);
+  });
+}
+
+async function onAction(e) {
+  const action = e.currentTarget.dataset.action;
+  const id = e.currentTarget.dataset.id;
+
+  if (action === "toggle-view") { setState({ view: state.view === "admin" ? "participant" : "admin", adminAuthed: false }); }
+  else if (action === "open-pix") { setState({ modal: { type: "pix" } }); }
+  else if (action === "open-pie") { setState({ modal: { type: "pie" } }); }
+  else if (action === "close-modal") { document.querySelectorAll(".rf-overlay").forEach(n => n.remove()); setState({ modal: null }); }
+  else if (action === "copy-pix") { const ok = await copyText(state.config.pixKey); showToast(ok ? "Chave Pix copiada!" : "Não deu para copiar, selecione manualmente."); }
+  else if (action === "pick") {
+    const already = state.selected.includes(id);
+    const nextSelected = already ? state.selected.filter((x) => x !== id) : [...state.selected, id];
+    setState({ selected: nextSelected });
+  }
+  else if (action === "clear-selection") { setState({ selected: [] }); }
+  else if (action === "open-reserve-multi") { setState({ modal: { type: "reserve", ids: [...state.selected], step: 1 } }); }
+  else if (action === "confirm-reserve") {
+    const name = document.getElementById("rv-name").value.trim();
+    const phone = document.getElementById("rv-phone").value.trim();
+    if (!name) { document.getElementById("rv-err").textContent = "Digite seu nome para continuar."; return; }
+    const ids = state.modal.ids;
+    const res = await reserveEntries(ids, name, phone);
+    if (!res.ok) {
+      document.getElementById("rv-err").textContent = res.message;
+      if (res.taken) setState({ selected: state.selected.filter((x) => !res.taken.includes(x)) });
+      return;
+    }
+    setState({ modal: { type: "reserve", ids, step: 2, name, phone }, selected: [] });
+  }
+  else if (action === "login") {
+    const pw = document.getElementById("pw-login").value;
+    const hash = await sha256Hex(pw);
+    if (hash === state.config.adminPasswordHash) setState({ adminAuthed: true });
+    else document.getElementById("pw-err").textContent = "Senha incorreta.";
+  }
+  else if (action === "set-password") {
+    const pw1 = document.getElementById("pw-new1").value, pw2 = document.getElementById("pw-new2").value;
+    if (pw1.length < 4) { document.getElementById("pw-err").textContent = "Use pelo menos 4 caracteres."; return; }
+    if (pw1 !== pw2) { document.getElementById("pw-err").textContent = "As senhas não coincidem."; return; }
+    const hash = await sha256Hex(pw1);
+    await saveConfig({ ...state.config, adminPasswordHash: hash });
+    setState({ adminAuthed: true });
+  }
+  else if (action === "logout") { setState({ adminAuthed: false }); }
+  else if (action === "admin-tab") { setState({ adminTab: e.currentTarget.dataset.tab }); }
+  else if (action === "save-premio") {
+    await saveConfig({
+      ...state.config,
+      prizeName: document.getElementById("f-prizeName").value,
+      prizeDescription: document.getElementById("f-prizeDescription").value,
+      pricePerNumber: Number(document.getElementById("f-pricePerNumber").value) || 0,
+    });
+    showToast("Prêmio salvo!");
+  }
+  else if (action === "remove-photo") { await saveConfig({ ...state.config, prizeImage: "" }); }
+  else if (action === "save-pagamento") {
+    await saveConfig({
+      ...state.config,
+      pixKey: document.getElementById("f-pixKey").value,
+      pixOwnerName: document.getElementById("f-pixOwnerName").value,
+      whatsappNumber: document.getElementById("f-whatsappNumber").value,
+    });
+    showToast("Dados de pagamento salvos!");
+  }
+  else if (action === "ask-regen") { setState({ modal: { type: "confirmRegen" } }); }
+  else if (action === "confirm-regen") {
+    const mode = document.getElementById("f-mode-names").checked ? "names" : "numbers";
+    const qtyEl = document.querySelector('input[name="qty"]:checked');
+    const totalCount = qtyEl ? Number(qtyEl.value) : state.config.totalCount;
+    const entryLabels = document.getElementById("f-entryLabels").value.split("\n").map(s => s.trim()).filter(Boolean);
+    const updatedConfig = { ...state.config, mode, totalCount, entryLabels };
+    await saveConfig(updatedConfig);
+    await saveEntries(generateEntries(totalCount));
+    document.querySelectorAll(".rf-overlay").forEach(n => n.remove());
+    setState({ modal: null });
+    showToast("Rifa reiniciada!");
+  }
+  else if (action === "admin-pick") { setState({ modal: { type: "entryDetail", id } }); }
+  else if (action === "mark-paid") { await setEntryStatus(id, "paid"); document.querySelectorAll(".rf-overlay").forEach(n => n.remove()); setState({ modal: null }); }
+  else if (action === "mark-pending") { await setEntryStatus(id, "pending"); document.querySelectorAll(".rf-overlay").forEach(n => n.remove()); setState({ modal: null }); }
+  else if (action === "mark-available") { await setEntryStatus(id, "available"); document.querySelectorAll(".rf-overlay").forEach(n => n.remove()); setState({ modal: null }); }
+  else if (action === "draw") { await drawWinner(); }
+  else if (action === "change-password") {
+    const pw1 = document.getElementById("f-pw1").value, pw2 = document.getElementById("f-pw2").value;
+    if (pw1.length < 4 || pw1 !== pw2) { showToast("As senhas precisam ter 4+ caracteres e coincidir."); return; }
+    const hash = await sha256Hex(pw1);
+    await saveConfig({ ...state.config, adminPasswordHash: hash });
+    showToast("Senha alterada!");
+  }
+}
+
+// upload de foto (delegado, porque o input é recriado a cada render)
+appEl.addEventListener("change", (e) => {
+  if (e.target && e.target.id === "f-prizeImage") {
+    handleImageFile(e.target.files[0], async (dataUrl) => {
+      await saveConfig({ ...state.config, prizeImage: dataUrl });
+    });
+  }
+});
+
+bootstrap();
+</script>
+</body>
+</html>
